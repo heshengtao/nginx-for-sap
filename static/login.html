@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway Login - Super Agent Party</title>
+    <style>
+        :root {
+            --primary-color: #0071e3;
+            --primary-hover: #0077ed;
+            --text-main: #1d1d1f;
+            --text-secondary: #86868b;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --error-color: #ff3b30;
+            --radius: 18px; /* 统一圆角风格 */
+            --shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+            --card-bg: rgba(255, 255, 255, 0.75); /* 磨砂玻璃背景色 */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--text-main);
+            flex-direction: column;
+            overflow: hidden; /* 防止背景球撑大页面 */
+            position: relative;
+        }
+
+        /* --- 移植的动态背景特效 --- */
+        .fluid-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: #f5f5f7;
+            overflow: hidden;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.8;
+            animation: float 10s infinite ease-in-out alternate;
+            z-index: 0;
+        }
+
+        .blob-1 {
+            top: -10%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: #a8edea;
+            animation-delay: 0s;
+        }
+
+        .blob-2 {
+            bottom: -10%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            background: #fed6e3;
+            animation-delay: -5s;
+        }
+
+        .blob-3 {
+            top: 40%;
+            left: 40%;
+            width: 300px;
+            height: 300px;
+            background: #e0c3fc;
+            animation-delay: -2s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -30px) scale(1.1); }
+            100% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        /* --- 页面主体容器 (z-index 保证在背景之上) --- */
+        .main-container {
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        /* --- Logo 区域 --- */
+        .brand-header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: breathe 6s ease-in-out infinite;
+        }
+
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.1));
+        }
+
+        .app-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* --- 语言切换 --- */
+        .lang-switch {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(12px);
+            padding: 4px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+
+        .lang-btn {
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            height: 28px; 
+            padding: 0 14px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        .lang-btn:hover {
+            color: var(--text-main);
+        }
+
+        .lang-btn.active {
+            background: #ffffff;
+            color: #000000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            font-weight: 600;
+        }
+
+        /* --- 登录卡片 (磨砂风格) --- */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(24px); /* 关键：背景模糊 */
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            padding: 2.5rem 2.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            width: 340px;
+            text-align: center;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            font-size: 20px; /* 稍微调小一点，区别于主标题 */
+            color: var(--text-main);
+            opacity: 0.9;
+        }
+
+        /* Inputs */
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            margin: 0 0 16px 0;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color); /* 更淡的边框 */
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.8); /* 输入框轻微透明 */
+            transition: all 0.2s;
+        }
+        input:focus {
+            background: #fff;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+        }
+        input::placeholder {
+            color: #a1a1a6;
+        }
+
+        /* Buttons */
+        button.action-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 6px;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 4px 12px rgba(0, 113, 227, 0.25);
+        }
+        button.action-btn:hover {
+            background: var(--primary-hover);
+        }
+        button.action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .hidden { display: none; }
+        
+        .error {
+            color: var(--error-color);
+            font-size: 13px;
+            margin-bottom: 16px;
+            min-height: 18px;
+            font-weight: 500;
+            text-align: left;
+            padding-left: 4px;
+        }
+        
+        p.info-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Dynamic Background -->
+<div class="fluid-background">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+</div>
+
+<!-- Language Switcher -->
+<div class="lang-switch">
+    <button class="lang-btn active" onclick="setLang('en')" id="btn-en">English</button>
+    <button class="lang-btn" onclick="setLang('zh')" id="btn-zh">中文</button>
+</div>
+
+<!-- Main Content -->
+<div class="main-container">
+    
+    <!-- Branding Header -->
+    <div class="brand-header">
+        <!-- 确保 logo.png 在 source 文件夹下，或者根据实际路径修改 src -->
+        <img src="logo.png" alt="Super Agent Party Logo" class="logo-img" onerror="this.style.display='none'">
+        <h1 class="app-title">Super Agent Party</h1>
+    </div>
+
+    <!-- Login View -->
+    <div class="card" id="login-card">
+        <h2 data-i18n="login_title">Sign In</h2>
+        <div id="login-error" class="error"></div>
+        <input type="text" id="username" data-placeholder="username_ph" placeholder="Username">
+        <input type="password" id="password" data-placeholder="password_ph" placeholder="Password">
+        <button class="action-btn" onclick="doLogin()" data-i18n="login_btn">Login</button>
+    </div>
+
+    <!-- Change Password View -->
+    <div class="card hidden" id="change-pass-card">
+        <h2 data-i18n="change_pass_title">Change Password</h2>
+        <p class="info-text" data-i18n="change_pass_desc">Security Requirement: You must change your password upon first login.</p>
+        <div id="cp-error" class="error"></div>
+        <input type="password" id="new-password" data-placeholder="new_pass_ph" placeholder="New Password">
+        <button class="action-btn" onclick="doChangePass()" data-i18n="update_pass_btn">Update Password</button>
+    </div>
+
+</div>
+
+<script>
+    /* --- i18n Logic --- */
+    const translations = {
+        en: {
+            login_title: "Sign In",
+            username_ph: "Username",
+            password_ph: "Password",
+            login_btn: "Sign In",
+            manage_tokens: "Manage API Tokens",
+            change_pass_title: "Change Password",
+            change_pass_desc: "Security Requirement: You must change your password upon first login.",
+            new_pass_ph: "New Password",
+            update_pass_btn: "Update Password",
+            err_login_needed: "Please login to change password.",
+            err_invalid: "Invalid credentials",
+            err_network: "Network Error",
+            err_update: "Error updating password",
+            success_update: "Password updated! Redirecting..."
+        },
+        zh: {
+            login_title: "账户登录", // 稍微改得更正式一点
+            username_ph: "用户名",
+            password_ph: "密码",
+            login_btn: "立即登录",
+            manage_tokens: "管理 API 令牌",
+            change_pass_title: "修改密码",
+            change_pass_desc: "安全要求：首次登录必须修改密码。",
+            new_pass_ph: "新密码",
+            update_pass_btn: "更新密码",
+            err_login_needed: "请先登录以修改密码。",
+            err_invalid: "用户名或密码错误",
+            err_network: "网络错误",
+            err_update: "密码更新失败",
+            success_update: "密码已更新！正在跳转..."
+        }
+    };
+
+    let currentLang = 'en';
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+        document.getElementById('btn-zh').classList.toggle('active', lang === 'zh');
+        localStorage.setItem('app_lang', lang);
+        applyTranslations();
+    }
+
+    function applyTranslations() {
+        const t = translations[currentLang];
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            el.innerText = t[el.getAttribute('data-i18n')];
+        });
+        document.querySelectorAll('[data-placeholder]').forEach(el => {
+            el.placeholder = t[el.getAttribute('data-placeholder')];
+        });
+        
+        // Clear errors on lang switch
+        document.getElementById('login-error').innerText = ''; 
+        document.getElementById('cp-error').innerText = '';
+    }
+
+    // Init Language
+    const savedLang = localStorage.getItem('app_lang');
+    const browserLang = navigator.language.startsWith('zh') ? 'zh' : 'en';
+    setLang(savedLang || browserLang);
+
+    /* --- Business Logic --- */
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('change_password') === 'true') {
+        setTimeout(() => {
+            document.getElementById('login-error').innerText = translations[currentLang].err_login_needed;
+        }, 100);
+    }
+
+    async function doLogin() {
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+        const errDiv = document.getElementById('login-error');
+        
+        // Simple UI validation
+        if (!u || !p) {
+            errDiv.innerText = currentLang === 'zh' ? "请输入用户名和密码" : "Please enter username and password";
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+            
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            
+            if (data.must_change_pass) {
+                document.getElementById('login-card').classList.add('hidden');
+                document.getElementById('change-pass-card').classList.remove('hidden');
+            } else {
+                window.location.href = '/';
+            }
+        } catch (e) {
+            errDiv.innerText = translations[currentLang].err_invalid;
+        }
+    }
+
+    async function doChangePass() {
+        const np = document.getElementById('new-password').value;
+        const errDiv = document.getElementById('cp-error');
+
+        if(!np) {
+             errDiv.innerText = currentLang === 'zh' ? "密码不能为空" : "Password cannot be empty";
+             return;
+        }
+
+        try {
+            const res = await fetch('/api/auth/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ new_password: np })
+            });
+            if (res.ok) {
+                alert(translations[currentLang].success_update);
+                window.location.href = '/';
+            } else {
+                errDiv.innerText = translations[currentLang].err_update;
+            }
+        } catch (e) {
+            errDiv.innerText = translations[currentLang].err_network;
+        }
+    }
+    
+    // Allow 'Enter' key to submit
+    document.getElementById('password').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') doLogin();
+    });
+    document.getElementById('new-password').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') doChangePass();
+    });
+</script>
+</body>
+</html>

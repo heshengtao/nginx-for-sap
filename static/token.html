@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Management - Super Agent Party</title>
+    <style>
+        :root {
+            --primary-color: #0071e3;
+            --primary-hover: #0077ed;
+            --danger-color: #ff3b30;
+            --text-main: #1d1d1f;
+            --text-secondary: #86868b;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --card-bg: rgba(255, 255, 255, 0.75);
+            --input-bg: rgba(255, 255, 255, 0.6);
+            --radius: 18px;
+            --shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #ffffff;
+            margin: 0;
+            padding: 40px 20px;
+            color: var(--text-main);
+            min-height: 100vh;
+            box-sizing: border-box;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* --- 动态背景 (与登录页一致) --- */
+        .fluid-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: #f5f5f7;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.8;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+
+        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #a8edea; animation-delay: 0s; }
+        .blob-2 { bottom: -10%; right: -10%; width: 400px; height: 400px; background: #fed6e3; animation-delay: -5s; }
+        .blob-3 { top: 40%; left: 40%; width: 300px; height: 300px; background: #e0c3fc; animation-delay: -2s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -30px) scale(1.1); }
+            100% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        /* --- 主容器 (磨砂玻璃) --- */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            padding: 40px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        /* --- Header Section --- */
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .brand-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .page-title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* 小胶囊按钮风格 */
+        .pill-btn {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0,0,0,0.05);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+        .pill-btn:hover { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .pill-btn.danger { color: var(--danger-color); }
+        .pill-btn.danger:hover { background: #fff0f0; }
+
+        /* --- Language Switcher --- */
+        .lang-switch {
+            background: rgba(0,0,0,0.05);
+            padding: 3px;
+            border-radius: 16px;
+            display: flex;
+            margin-right: 10px;
+        }
+        .lang-switch button {
+            border: none;
+            background: transparent;
+            padding: 4px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .lang-switch button.active {
+            background: #fff;
+            color: #000;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        /* --- Description Box --- */
+        .desc-box {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid var(--border-color);
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        code {
+            font-family: "SF Mono", Menlo, monospace;
+            color: #d63384;
+            background: rgba(214, 51, 132, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        /* --- Create Bar --- */
+        .create-bar {
+            display: flex;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .create-bar input {
+            flex: 1;
+            padding: 14px 130px 14px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s;
+            background: var(--input-bg);
+        }
+        .create-bar input:focus {
+            background: #fff;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+        }
+        .create-bar button {
+            position: absolute;
+            right: 6px;
+            top: 6px;
+            bottom: 6px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 113, 227, 0.3);
+        }
+        .create-bar button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+        .create-bar button:active { transform: scale(0.96); }
+
+        /* --- Table Styling --- */
+        .table-wrapper {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        thead {
+            background: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid var(--border-color);
+        }
+        th {
+            text-align: left;
+            padding: 16px 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            font-size: 15px;
+            color: var(--text-main);
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255, 255, 255, 0.5); }
+
+        /* Key Code Styling */
+        .key-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 100%;
+        }
+        .key-code {
+            font-family: "SF Mono", Menlo, monospace;
+            font-size: 13px;
+            color: #444;
+            background: rgba(0,0,0,0.06);
+            padding: 6px 10px;
+            border-radius: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+            user-select: all;
+        }
+        
+        /* Icon Buttons */
+        .icon-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .icon-btn:hover { background: rgba(0,0,0,0.08); color: var(--text-main); }
+        .icon-btn.delete:hover { background: rgba(255, 59, 48, 0.1); color: var(--danger-color); }
+        .icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        @media (max-width: 650px) {
+            .container { padding: 25px 20px; }
+            .header-row { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .top-actions { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
+            th:nth-child(3), td:nth-child(3) { display: none; } /* Hide Date */
+            .key-code { max-width: 140px; }
+            .create-bar input { padding-right: 20px; margin-bottom: 50px; } /* Mobile adjustments */
+            .create-bar button { top: auto; bottom: 8px; right: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="fluid-background">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+</div>
+
+<div class="container">
+    <div class="header-row">
+        <div class="brand-area">
+            <!-- 保持 Logo 路径一致 -->
+            <img src="source/logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+            <h1 class="page-title" data-i18n="page_title">API Keys</h1>
+        </div>
+        
+        <div class="top-actions">
+            <div class="lang-switch">
+                <button onclick="setLang('en')" id="btn-en">EN</button>
+                <button onclick="setLang('zh')" id="btn-zh">中文</button>
+            </div>
+            <a href="/" class="pill-btn" data-i18n="go_app">Back to App</a>
+            <button class="pill-btn danger" onclick="logout()" data-i18n="logout">Sign Out</button>
+        </div>
+    </div>
+    
+    <div class="desc-box">
+        <div style="margin-bottom: 8px;">
+            <strong data-i18n="desc_title">Persistent Access</strong><br>
+            <span data-i18n="desc_text">Generate long-lived API keys for third-party scripts or external integrations.</span>
+        </div>
+        <div>
+            <span data-i18n="desc_usage">HTTP Header:</span> <code>Authorization: Bearer sk-sap-...</code>
+        </div>
+    </div>
+
+    <div class="create-bar">
+        <input type="text" id="key-name" data-placeholder="key_name_ph" placeholder="Enter key name (e.g. My Script)">
+        <button onclick="createKey()" data-i18n="create_btn">Create Key</button>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="keys-table">
+            <thead>
+                <tr>
+                    <th style="width: 25%;" data-i18n="th_name">NAME</th>
+                    <th data-i18n="th_key">TOKEN</th>
+                    <th style="width: 20%;" data-i18n="th_created">CREATED</th>
+                    <th style="width: 80px; text-align: center;" data-i18n="th_action"></th>
+                </tr>
+            </thead>
+            <tbody id="keys-list">
+                <!-- Data Rows -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    /* --- Icons --- */
+    const ICONS = {
+        copy: `<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`,
+        trash: `<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`,
+        check: `<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`
+    };
+
+    /* --- i18n --- */
+    const translations = {
+        en: {
+            page_title: "API Keys",
+            go_app: "Back to App",
+            logout: "Sign Out",
+            desc_title: "Persistent Access",
+            desc_text: "Generate long-lived API keys for third-party scripts or integrations.",
+            desc_usage: "Use Header:",
+            key_name_ph: "Key Name (e.g. My APP)",
+            create_btn: "Create Key",
+            th_name: "Name",
+            th_key: "Token",
+            th_created: "Created",
+            th_action: "Action", 
+            confirm_revoke: "Revoke this key? This cannot be undone.",
+            empty_list: "No API keys found."
+        },
+        zh: {
+            page_title: "API 密钥管理",
+            go_app: "返回应用",
+            logout: "退出登录",
+            desc_title: "持久化访问",
+            desc_text: "为第三方脚本或外部集成生成长期有效的访问密钥。",
+            desc_usage: "调用请求头:",
+            key_name_ph: "密钥名称 (例如: 我的应用)",
+            create_btn: "创建密钥",
+            th_name: "名称",
+            th_key: "密钥令牌",
+            th_created: "创建时间",
+            th_action: "操作", 
+            confirm_revoke: "确定要撤销此密钥吗？此操作无法恢复。",
+            empty_list: "暂无 API 密钥"
+        }
+    };
+
+    let currentLang = 'en';
+    let keysCache = [];
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+        document.getElementById('btn-zh').classList.toggle('active', lang === 'zh');
+        localStorage.setItem('app_lang', lang);
+        
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            el.innerText = translations[currentLang][el.getAttribute('data-i18n')];
+        });
+        document.querySelectorAll('[data-placeholder]').forEach(el => {
+            el.placeholder = translations[currentLang][el.getAttribute('data-placeholder')];
+        });
+
+        renderRows();
+    }
+
+    /* --- Logic --- */
+    async function loadKeys() {
+        try {
+            const res = await fetch('/api/auth/keys/list');
+            if (res.status === 401) return window.location.href = '/login.html';
+            keysCache = await res.json();
+            renderRows();
+        } catch (e) { console.error(e); }
+    }
+
+    function renderRows() {
+        const tbody = document.getElementById('keys-list');
+        tbody.innerHTML = '';
+        
+        if (keysCache.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#999; padding:30px;">${translations[currentLang].empty_list}</td></tr>`;
+            return;
+        }
+
+        keysCache.forEach(k => {
+            const date = new Date(k.created_at * 1000).toLocaleDateString(currentLang === 'zh' ? 'zh-CN' : 'en-US');
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight:600; color:var(--text-main);">${k.name}</td>
+                <td>
+                    <div class="key-wrapper">
+                        <div class="key-code">${k.key}</div>
+                        <button class="icon-btn" onclick="copyToClipboard('${k.key}', this)" title="Copy">
+                            ${ICONS.copy}
+                        </button>
+                    </div>
+                </td>
+                <td style="color:var(--text-secondary); font-size:13px;">${date}</td>
+                <td style="text-align:center;">
+                    <button class="icon-btn delete" onclick="deleteKey('${k.id}')" title="Revoke">
+                        ${ICONS.trash}
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function createKey() {
+        const inp = document.getElementById('key-name');
+        if(!inp.value.trim()) return;
+        
+        const btn = document.querySelector('.create-bar button');
+        const originalText = btn.innerText;
+        btn.innerText = '...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/auth/keys/create', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: inp.value }) 
+            });
+            if(res.ok) { inp.value = ''; loadKeys(); }
+        } catch(e) {
+            alert('Network Error');
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    async function deleteKey(id) {
+        if(!confirm(translations[currentLang].confirm_revoke)) return;
+        await fetch('/api/auth/keys/delete', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id }) 
+        });
+        loadKeys();
+    }
+
+    function copyToClipboard(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+            const originalIcon = btn.innerHTML;
+            btn.innerHTML = ICONS.check;
+            btn.style.color = 'var(--primary-color)';
+            setTimeout(() => {
+                btn.innerHTML = originalIcon;
+                btn.style.color = '';
+            }, 1500);
+        });
+    }
+
+    function logout() {
+        // Clear cookies logic
+        document.cookie = "sap_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        window.location.href = '/login.html';
+    }
+
+    // Init
+    // Add enter key support for input
+    document.getElementById('key-name').addEventListener('keypress', function(e){
+        if(e.key === 'Enter') createKey();
+    });
+
+    const saved = localStorage.getItem('app_lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en');
+    setLang(saved);
+    loadKeys();
+</script>
+</body>
+</html>
