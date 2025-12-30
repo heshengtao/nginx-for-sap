@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/mojocn/base64Captcha" // 引入验证码库
 )
 
 // --- 配置与状态 ---
@@ -25,6 +26,9 @@ var (
 	forceReset = os.Getenv("FORCE_RESET") == "true"
 	store      UserStore
 	mu         sync.Mutex
+
+	// 初始化验证码存储（默认使用内存存储，自带过期清理机制）
+	captchaStore = base64Captcha.DefaultMemStore
 )
 
 // --- 数据结构 ---
@@ -32,7 +36,7 @@ var (
 type APIKey struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
-	Key       string `json:"key"` // 存储实际Key
+	Key       string `json:"key"`
 	CreatedAt int64  `json:"created_at"`
 }
 
@@ -48,9 +52,12 @@ type UserStore struct {
 }
 
 type Credentials struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	NewPass  string `json:"new_password,omitempty"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	NewPass     string `json:"new_password,omitempty"`
+	// 新增验证码字段
+	CaptchaID   string `json:"captcha_id"`
+	CaptchaCode string `json:"captcha_code"`
 }
 
 type KeyRequest struct {
@@ -68,8 +75,12 @@ func init() {
 	if len(jwtSecret) == 0 {
 		jwtSecret = []byte("default-secret-please-change")
 	}
-	if initUser == "" { initUser = "root" }
-	if initPass == "" { initPass = "pass" }
+	if initUser == "" {
+		initUser = "root"
+	}
+	if initPass == "" {
+		initPass = "pass"
+	}
 }
 
 func loadData() {
@@ -132,7 +143,6 @@ func generateJWT(username string) (string, error) {
 	return token.SignedString(jwtSecret)
 }
 
-// 验证 Cookie 中的 Token
 func validateCookie(r *http.Request) bool {
 	cookie, err := r.Cookie("sap_token")
 	if err != nil {
@@ -150,9 +160,33 @@ func validateCookie(r *http.Request) bool {
 
 // --- Handlers ---
 
+// 新增：生成验证码接口
+func captchaHandler(w http.ResponseWriter, r *http.Request) {
+	// 配置验证码参数：高, 宽, 长度, 干扰强度, 噪点数
+	// 这里使用数字驱动，生成的图片比较清晰且适合内网
+	driver := base64Captcha.NewDriverDigit(80, 240, 6, 0.7, 80)
+	
+	// 创建验证码实例
+	c := base64Captcha.NewCaptcha(driver, captchaStore)
+	
+	// 生成 ID 和 Base64 图片字符串
+	id, b64s, _, err := c.Generate()
+	if err != nil {
+		http.Error(w, "Captcha generation error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	// 返回给前端：前端需要存下 captcha_id 并在登录时带回
+	json.NewEncoder(w).Encode(map[string]string{
+		"captcha_id":   id,
+		"image_base64": b64s,
+	})
+}
+
 func validateHandler(w *http.ResponseWriter, r *http.Request) {
 	tokenString := ""
-	
+
 	authHeader := r.Header.Get("Authorization")
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		tokenString = strings.TrimPrefix(authHeader, "Bearer ")
@@ -204,9 +238,9 @@ func validateHandler(w *http.ResponseWriter, r *http.Request) {
 
 	if user.MustChangePass {
 		originalURI := r.Header.Get("X-Original-URI")
-		if !strings.HasPrefix(originalURI, "/api/auth/change-password") && 
-		   !strings.HasPrefix(originalURI, "/static/") && 
-		   !strings.Contains(originalURI, "login.html") {
+		if !strings.HasPrefix(originalURI, "/api/auth/change-password") &&
+			!strings.HasPrefix(originalURI, "/static/") &&
+			!strings.Contains(originalURI, "login.html") {
 			http.Error(*w, "Password Change Required", http.StatusForbidden)
 			return
 		}
@@ -217,7 +251,21 @@ func validateHandler(w *http.ResponseWriter, r *http.Request) {
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	var creds Credentials
-	json.NewDecoder(r.Body).Decode(&creds)
+	// 使用 JSON Decoder 解析 Body
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	// ★ 修改点：验证码校验逻辑
+	// Verify 参数：id, answer, clear
+	// clear=true 表示验证后立即删除该ID，防止重放攻击
+	if !captchaStore.Verify(creds.CaptchaID, creds.CaptchaCode, true) {
+		w.WriteHeader(http.StatusBadRequest)
+		// 返回特定 JSON 错误，以便前端识别刷新验证码
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid_captcha"})
+		return
+	}
 
 	mu.Lock()
 	user := store.User
@@ -245,7 +293,6 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func changePassHandler(w http.ResponseWriter, r *http.Request) {
-	// 修复点：调用 validateCookie 真正使用 cookie
 	if !validateCookie(r) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -293,7 +340,9 @@ func createKeyHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req KeyRequest
 	json.NewDecoder(r.Body).Decode(&req)
-	if req.Name == "" { req.Name = "Unnamed Key" }
+	if req.Name == "" {
+		req.Name = "Unnamed Key"
+	}
 
 	newKeyStr := generateRandomKey()
 	id := fmt.Sprintf("%d", time.Now().UnixNano())
@@ -318,7 +367,6 @@ func createKeyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteKeyHandler(w http.ResponseWriter, r *http.Request) {
-	// 修复点：调用 validateCookie 真正使用 cookie
 	if !validateCookie(r) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -341,10 +389,11 @@ func main() {
 	http.HandleFunc("/validate", func(w http.ResponseWriter, r *http.Request) {
 		validateHandler(&w, r)
 	})
-	
+
 	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/captcha", captchaHandler) // 注册验证码路由
 	http.HandleFunc("/change-password", changePassHandler)
-	
+
 	http.HandleFunc("/keys/list", listKeysHandler)
 	http.HandleFunc("/keys/create", createKeyHandler)
 	http.HandleFunc("/keys/delete", deleteKeyHandler)
