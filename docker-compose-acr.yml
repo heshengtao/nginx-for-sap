@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  # 后端服务
+  backend:
+    image: crpi-9mgnqijkd7wc42x2.cn-shenzhen.personal.cr.aliyuncs.com/ailm32442/super-agent-party:latest
+    container_name: sap-backend
+    restart: unless-stopped
+    volumes:
+      - ./super-agent-data:/app/data
+
+  # 前端网关服务
+  gateway:
+    image: crpi-9mgnqijkd7wc42x2.cn-shenzhen.personal.cr.aliyuncs.com/ailm32442/nginx-for-sap:latest
+    container_name: sap-gateway
+    restart: unless-stopped
+    ports:
+      - "3456:3456"
+    environment:
+      - JWT_SECRET=ChangeThisToARandomString123!
+      - INIT_USER=root
+      - INIT_PASS=pass
+      - FORCE_RESET=false 
+    volumes:
+      - ./gateway-data:/data
+    depends_on:
+      - backend
