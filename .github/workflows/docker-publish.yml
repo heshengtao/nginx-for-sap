@@ -12,7 +12,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/nigix-for-sap
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/nginx-for-sap
 
 jobs:
   build-and-push:
